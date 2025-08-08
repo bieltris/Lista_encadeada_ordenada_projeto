@@ -29,19 +29,24 @@ void liberarLista(Tarefa *inicio)
 }
 
 
-void liberarTarefa(Tarefa **inicio, Tarefa *tarefaApagarei) {
+void liberarTarefa(Tarefa **inicio, Tarefa *tarefaApagarei)
+{
 
     Tarefa *atual = *inicio;
     Tarefa *anterior = NULL;
-    while(atual != NULL && atual != tarefaApagarei){
+    while(atual != NULL && atual != tarefaApagarei)
+    {
         anterior = atual;
         atual = atual->prox;
     }
 
-    if(anterior != NULL) {
+    if(anterior != NULL)
+    {
         anterior->prox = atual->prox;
         free(atual);
-    } else {
+    }
+    else
+    {
         *inicio = atual->prox;
         free(atual);
 
@@ -97,7 +102,8 @@ void inserirOrdenado(Tarefa **inicio, Tarefa *novaTarefa)
     }
 }
 
-void reinserirNovaAtualOrdenado(Tarefa **inicio, Tarefa *atual) {
+void reinserirNovaAtualOrdenado(Tarefa **inicio, Tarefa *atual)
+{
 
     Tarefa *NovaAtual = malloc(sizeof(Tarefa));
     strcpy(NovaAtual->nome, atual->nome);
@@ -257,7 +263,8 @@ void imprimirLista(Tarefa *inicio)
 {
     printf("Lista de Tarefas:\n\n");
 
-    if(inicio == NULL){
+    if(inicio == NULL)
+    {
         printf("Lista vazia!\n");
         return;
     }
@@ -277,7 +284,7 @@ void alterarPrioridade(Tarefa **inicio)
 
     int prioridadeProcurada;
     imprimirLista(*inicio);
-    printf("Digite a prioridade da tarefa que deseja apagar\n>");
+    printf("Digite a prioridade da tarefa que deseja editar\n>");
     scanf(" %d", &prioridadeProcurada);
     limparBuffer();
     Tarefa *atual = *inicio;
@@ -300,22 +307,37 @@ void alterarPrioridade(Tarefa **inicio)
         return;
     }
 
-    int indice;
-    printf("Digite o indice da prioridade que deseja alterar:\n>");
-    scanf("%d", &indice);
+    int indiceEscolhido;
+    printf("\nDigite o indice da tarefa que deseja alterar: ");
+    scanf("%d", &indiceEscolhido);
     limparBuffer();
 
-    atual = *inicio;
-    while(atual != NULL && atual->prioridade != prioridadeProcurada)
+    if (indiceEscolhido < 0 || indiceEscolhido >= contador)
     {
+        printf("Indice invalido.\n");
+        return;
+    }
+
+    atual = *inicio;
+    int indiceAtual = 0;
+
+    while (atual != NULL)
+    {
+        if (atual->prioridade == prioridadeProcurada)
+        {
+            if (indiceAtual == indiceEscolhido)
+            {
+                break;
+            }
+            indiceAtual++;
+        }
         atual = atual->prox;
     }
 
-
-    int avancarLista = 0;
-    while(avancarLista < indice)
+    if (atual == NULL)
     {
-        atual = atual->prox;
+        printf("Erro: Tarefa não encontrada.\n");
+        return;
     }
 
     int novaPrioridade;
@@ -441,31 +463,44 @@ void salvarLista(Tarefa *inicio, char nomeDoArquivo[])
     fclose(listaf);
 }
 
+
 void salvarNomeDoArquivo(char nomeDoArquivo[], size_t tamanho)
 {
+    FILE *nomesArquivosListas_read = fopen(ARQUIVO_NOMES_LISTAS, "rb");
+    char tempNome[15];
+    int found = 0;
 
-    nomesArquivosListas = fopen(ARQUIVO_NOMES_LISTAS, "a+b");
-    if(nomesArquivosListas == NULL)
+    if (nomesArquivosListas_read != NULL)
     {
-        nomesArquivosListas = fopen(ARQUIVO_NOMES_LISTAS, "wb");
-    }
 
-    char nomesArquivosJaSalvos[tamanho];
-    while(strcmp(nomesArquivosJaSalvos, nomeDoArquivo) != 0){
-
-        fread(nomesArquivosJaSalvos, sizeof(char), tamanho, nomesArquivosListas);
-        printf("Lendo nomes..\n");
-        if(feof(nomesArquivosListas)){
-            break;
+        while (fread(tempNome, sizeof(char), tamanho, nomesArquivosListas_read) == tamanho)
+        {
+            if (strncmp(tempNome, nomeDoArquivo, tamanho) == 0)
+            {
+                found = 1;
+                break;
+            }
         }
+        fclose(nomesArquivosListas_read);
     }
-    if(strcmp(nomesArquivosJaSalvos, nomeDoArquivo) == 0){
-        printf("Escolhido nome existente.\n");
+
+    if (found)
+    {
+        printf("Escolhido nome existente. Nao sera adicionado novamente.\n");
         return;
     }
-    fwrite(nomeDoArquivo, sizeof(char), tamanho, nomesArquivosListas);
 
-    fclose(nomesArquivosListas);
+
+    FILE *nomesArquivosListas_write = fopen(ARQUIVO_NOMES_LISTAS, "ab");
+    if (nomesArquivosListas_write == NULL)
+    {
+        perror("Erro ao abrir arquivo de nomes para escrita");
+        return;
+    }
+
+    fwrite(nomeDoArquivo, sizeof(char), tamanho, nomesArquivosListas_write);
+    fclose(nomesArquivosListas_write);
+    printf("Nome de arquivo '%s' salvo com sucesso.\n", nomeDoArquivo);
 }
 
 void listarNomeDosArquivos()
@@ -476,10 +511,11 @@ void listarNomeDosArquivos()
     printf("\n");
     while(fread(nomeArquivo, sizeof(char), 15, nomesArquivosListas))
     {
-        printf("[%d]%s\n", contador, nomeArquivo);
+        printf("%s\n", nomeArquivo);
         contador++;
     }
-    if(contador == 0) {
+    if(contador == 0)
+    {
         printf("Nao existem arquivos ainda!\n");
     }
     fclose(nomesArquivosListas);
@@ -487,38 +523,42 @@ void listarNomeDosArquivos()
 
 void carregarListaDoArquivo(Tarefa **inicio, char nomeDoArquivo[])
 {
-
     if (strstr(nomeDoArquivo, ".txt") == NULL)
     {
-        printf("Adicionando .txt...\n%s.txt\n", nomeDoArquivo);
         strcat(nomeDoArquivo, ".txt");
     }
 
-
-    nomesArquivosListas = fopen(nomeDoArquivo, "rb");
-    if(nomesArquivosListas == NULL)
+    FILE *arquivo = fopen(nomeDoArquivo, "rb");
+    if (arquivo == NULL)
     {
-        printf("Erro ao ler arquivo...\n");
-        exit(1);
+        printf("Arquivo '%s' nao encontrado ou nao pode ser aberto.\n", nomeDoArquivo);
+        return;
     }
+    liberarLista(*inicio);
+    *inicio = NULL;
 
-    liberarLista(inicio);
+    Tarefa tarefaLida;
 
-    while(1)
+    while (fread(&tarefaLida, sizeof(Tarefa), 1, arquivo) == 1)
     {
-        Tarefa *nova = malloc(sizeof(Tarefa));
-        if (fread(nova, sizeof(Tarefa), 1, nomesArquivosListas) != 1)
+        Tarefa *novaTarefa = (Tarefa*) malloc(sizeof(Tarefa));
+        if (novaTarefa == NULL)
         {
-            free(nova);
-            break;
+            printf("Erro: Falha ao alocar memoria.\n");
+            fclose(arquivo);
+            return;
         }
 
-        nova->prox = NULL;
-        inserirOrdenado(inicio, nova);
+        strcpy(novaTarefa->nome, tarefaLida.nome);
+        novaTarefa->prioridade = tarefaLida.prioridade;
+
+        novaTarefa->prox = NULL;
+
+        inserirOrdenado(inicio, novaTarefa);
     }
 
-
-    fclose(nomesArquivosListas);
+    fclose(arquivo);
+    printf("Lista carregada com sucesso do arquivo '%s'.\n", nomeDoArquivo);
 }
 
 void editarListaEncadeada(Tarefa **inicio)
@@ -529,7 +569,7 @@ void editarListaEncadeada(Tarefa **inicio)
     printf("Deseja alterar dados ou apagar determinadas tarefas?\n");
     printf("[0] EDITAR\n[1] APAGAR\n");
     scanf(" %d", &alterarOuApagar);
-    printf("Buscar por NOME ou PRIORIDADE a Tarefa?\n");
+    printf("Editar o NOME ou PRIORIDADE da Tarefa?\n");
     printf("[0] NOME\n[1] PRIORIDADE\n");
     scanf(" %d", &NomeOuPrioridade);
     limparBuffer();
